@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>한월환해도 (0417 장비목록 업데이트)</title>
-    <link rel="icon" type="png" href="images/hanwol-icon.png">
+    <title>한월환해도 (0418 장비목록 업데이트)</title>
+    <link rel="icon" type="image/png" href="images/hanwol-icon.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
@@ -52,7 +52,7 @@
             position: sticky; top: 0; z-index: 10;
         }
 
-        /* [아이템 박스 스타일] */
+        /* [명인 스타일 아이템 박스] */
         .game-item-box {
             width: 54px; height: 54px; 
             background: radial-gradient(circle, #5e4b3c 0%, #1a1512 100%);
@@ -64,7 +64,6 @@
             border-color: #b8860b !important; 
             box-shadow: 0 0 12px rgba(184, 134, 11, 0.4);
         }
-
         .game-item-name {
             margin-top: 8px; font-size: 11px; font-weight: 900; color: #ffffff;
             text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -84,7 +83,7 @@
             color: #fff !important;
         }
 
-        /* 사이드바 스타일 */
+        /* [사이드바 메뉴 스타일] */
         #toggle-sidebar {
             background: #fff; border: 2px solid #000; padding: 7px 12px; cursor: pointer;
             font-weight: 900; box-shadow: 4px 4px 0px rgba(0,0,0,0.2); font-size: 14px;
@@ -98,7 +97,7 @@
         }
         #controls.active { max-height: 80vh; border: 2px solid #000; padding: 12px; }
 
-        /* 기타 UI */
+        /* [기타 UI 스타일] */
         #search-results {
             position: absolute; top: 40px; left: 0; width: 240px; background: white;
             border: 2px solid #000; box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
@@ -116,6 +115,9 @@
         .accordion-content { display: none; padding: 10px 5px; border: 1px solid #ccc; border-top: none; }
         .accordion-content.active { display: block; }
         #copy-toast { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); background-color: #ffd700; color: #000; padding: 10px 24px; border: 2px solid #000; box-shadow: 4px 4px 0px rgba(0,0,0,0.3); font-weight: 900; z-index: 11000; display: none; border-radius: 4px; }
+        .mine-marker { border: 1px solid #000; border-radius: 2px; }
+        .mine-녹 { background-color: #2ecc71; } .mine-황 { background-color: #f1c40f; } .mine-청 { background-color: #3498db; } .mine-적 { background-color: #e74c3c; }
+        .special-mine { border: 2.5px solid #fff !important; box-shadow: 0 0 8px #fff, 0 0 12px #f00 !important; z-index: 1000 !important; }
     </style>
 </head>
 
@@ -143,70 +145,101 @@
     </div>
 
     <div id="poki-event-modal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 30000; justify-content: center; align-items: center;">
-        <div class="event-window" style="width: 440px; background-color: #2a211a; border: 2px solid #5e4b3c; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.9); overflow: hidden; font-family: 'Pretendard', sans-serif;">
-            <div class="event-header" style="padding: 12px 15px; background-color: #3d3129; border-bottom: 2px solid #5e4b3c; display: flex; justify-content: space-between; align-items: center;">
-                <h1 style="margin: 0; font-size: 16px; color: #d4af37; font-weight: 900;">🎂 포키의 웹지도 이벤트</h1>
+        <div style="width: 440px; background-color: #2a211a; border: 2px solid #5e4b3c; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.9); overflow: hidden; font-family: 'Pretendard', sans-serif;">
+            <div style="padding: 12px 15px; background-color: #3d3129; border-bottom: 2px solid #5e4b3c; display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="margin: 0; font-size: 16px; color: #d4af37; font-weight: 900;">🎂 포키의 웹지도 생일 이벤트</h1>
                 <span onclick="closePokiEvent()" style="cursor: pointer; color: #d4af37; font-size: 20px; font-weight: bold;">×</span>
             </div>
-            <div class="event-content" style="padding: 20px; color: #eee7c5; font-size: 13px; line-height: 1.8;">
-                <p style="margin-top: 0;">4/19일 포키 생일겸 한월서버 오픈 한달 기념으로 웹지도가 조금 더 많은 사람들이 사용하고 유용하게 쓰이길 바라며 작은 이벤트를 준비했습니다 😊</p>
+            <div style="padding: 20px; color: #eee7c5; font-size: 13px; line-height: 1.8;">
+                <p style="margin-top: 0;">포키 생일 & 한월 한달 기념! 웹지도가 더 유용하게 쓰이길 바라며 준비했습니다 😊</p>
                 <div style="background-color: #15110e; border: 1px solid #4a3d33; border-radius: 4px; padding: 15px; margin-top: 12px;">
-                    <div style="font-weight: bold; color: #ffffff; margin-bottom: 8px;">
-                        <span style="background-color: #d4af37; color: #2a211a; font-weight: bold; font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-right: 8px; vertical-align: middle;">개요</span>포키를 찾아라!
-                    </div>
-                    <p style="margin: 4px 0;"><span style="color: #d4af37; font-weight: bold; margin-right: 5px;">언제:</span> 2026.04.19 00:00 – 12:00</p>
-                    <p style="margin: 4px 0;"><span style="color: #d4af37; font-weight: bold; margin-right: 5px;">어디서:</span> 웹지도 사이트 구석구석</p>
-                    <p style="margin: 4px 0;"><span style="color: #d4af37; font-weight: bold; margin-right: 5px;">무엇을:</span> 숨겨진 <span style="color: #ffffff; font-weight: bold;">10개의 포키</span><img src="images/forky.png" style="width: 18px; height: 18px; vertical-align: text-bottom; margin: 0 2px; border: 1px solid #d4af37; background-color: #000; padding: 1px;"> 찾기</p>
+                    <div style="font-weight: bold; color: #ffffff; margin-bottom: 8px;"><span style="background-color:#d4af37; color:#2a211a; padding:2px 6px; border-radius:3px; margin-right:8px; font-size:11px;">개요</span>포키를 찾아라!</div>
+                    <p style="margin: 4px 0;"><span style="color:#d4af37; font-weight:bold;">언제:</span> 2026.04.19 00:00 – 12:00</p>
+                    <p style="margin: 4px 0;"><span style="color:#d4af37; font-weight:bold;">어디서:</span> 웹지도 사이트 구석구석</p>
+                    <p style="margin: 4px 0;"><span style="color:#d4af37; font-weight:bold;">무엇을:</span> 숨겨진 <span style="color:#ffffff; font-weight:bold;">10개의 포키</span><img src="images/forky.png" style="width:18px; height:18px; vertical-align:middle; margin-left:5px; border:1px solid #d4af37; background:#000;"> 찾기</p>
                 </div>
-                <div style="background-color: #15110e; border: 1px solid #4a3d33; border-radius: 4px; padding: 15px; margin-top: 12px;">
-                    <div style="font-weight: bold; color: #ffffff; margin-bottom: 8px;">
-                        <span style="background-color: #d4af37; color: #2a211a; font-weight: bold; font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-right: 8px; vertical-align: middle;">방법</span>참여 가이드
-                    </div>
-                    <ul style="margin: 5px 0; padding-left: 18px; list-style-type: disc; color: #b0a59a;">
-                        <li style="margin-bottom: 3px;">웹지도에 숨은 포키를 찾아 <span style="color: #ffffff; font-weight: bold;">스크린샷</span>을 찍어주세요.</li>
-                        <li style="margin-bottom: 3px;">스크린샷들을 모아 <span style="color: #ffffff; font-weight: bold;">포키에게 DM</span>을 보내면 완료!</li>
-                        <li>본 이벤트는 <span style="color: #d4af37; font-weight: bold;">선착순</span>으로 진행됩니다.</li>
-                    </ul>
-                </div>
-                <div style="background-color: #15110e; border: 1px solid #4a3d33; border-radius: 4px; padding: 15px; margin-top: 12px;">
-                    <div style="font-weight: bold; color: #ffffff; margin-bottom: 8px;">
-                        <span style="background-color: #d4af37; color: #2a211a; font-weight: bold; font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-right: 8px; vertical-align: middle;">보상</span>이벤트 상품
-                    </div>
-                    <p style="margin: 4px 0;"><span style="color: #d4af37; font-weight: bold; margin-right: 5px;">10개 (선착순):</span> 1등(금화 10개), 2등(9개), 3등(8개), 4등(7개), 5등(6개)/p>
-                    <p style="margin: 4px 0;"><span style="color: #d4af37; font-weight: bold; margin-right: 5px;">9개 (15명):</span> 금화 5개</p>
-                    <p style="margin: 4px 0;"><span style="color: #d4af37; font-weight: bold; margin-right: 5px;">참여자 (60명):</span> 금화 1개</p>
-                    <div style="font-size: 11px; color: #8c837a; margin-top: 10px; border-top: 1px solid #3d3129; padding-top: 10px; line-height: 1.5;">
-                        ※ 10개를 찾은 사람이 없을 경우, 9개 획득자 중 랜덤 추첨을 통해 1~5등 상품을 지급합니다.<br>*한월메뉴에 있는 십이지신, NPC, 맵우측에 있는 MADE 포키는 해당 안됩니다 :)</br>
-                    </div>
-                </div>
-                   <button onclick="closePokiEvent()" style="display: block; width: 100%; padding: 12px; background-color: #b8860b; color: #ffffff; text-align: center; border: 2px solid #000; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 20px; font-family: 'Pretendard', sans-serif;">D-1일 잊지마세요!</button>
+                <button onclick="closePokiEvent()" style="display: block; width: 100%; padding: 12px; background-color: #b8860b; color: #ffffff; text-align: center; border: 2px solid #000; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 20px;">D-1일 잊지마세요!</button>
             </div>
         </div>
     </div>
-
     <div id="skill-btn"><img src="images/skill.png" style="width: 44px; height: 44px; border: 2px solid #000; background: #fff; box-shadow: 4px 4px 0px rgba(0,0,0,0.2);"></div>
     <div id="skill-window">
-        <div>📜 비급 획득 정보 <span onclick="toggleSkillWindow()" style="float:right; cursor:pointer;">✖</span></div>
-        <div id="skill-list-content"></div>
+        <div style="background: #000; color: #fff; padding: 12px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
+            <span>📜 비급 획득 정보</span>
+            <span onclick="toggleSkillWindow()" style="cursor: pointer; font-size: 18px;">✖</span>
+        </div>
+        <div id="skill-list-content" style="padding: 12px;"></div>
     </div>
 
     <div id="blacksmith-window">
-        <div>🔨 대장장이 장비 리스트 <span onclick="toggleBlacksmithWindow()" style="float:right; cursor:pointer;">✖</span></div>
-        <div id="blacksmith-list-content"></div>
-    </div>
-
+        <div style="background: #000; color: #fff; padding: 12px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
+            <span>🔨 대장장이 장비 리스트</span>
+            <span onclick="toggleBlacksmithWindow()" style="cursor: pointer; font-size: 18px;">✖</span>
+        </div>
+        <div id="blacksmith-list-content" style="padding: 12px;"></div>
+    </div> 
+    
     <div id="map"></div>
     <div id="copy-toast"><img src="images/forky.png" style="width: 25px; height: 25px;"><span id="toast-text">복사 완료!</span></div>
 
     <div id="controls-wrapper">
-        <div id="blacksmith-btn" onclick="toggleBlacksmithWindow()">
-            <img src="images/blacksmith.png" style="width: 38px; height: 38px; border: 2px solid #000; background: #fff;">
+        <div id="blacksmith-btn" onclick="toggleBlacksmithWindow()" style="display: flex; align-items: center; cursor: pointer; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            <img src="images/blacksmith.png" style="width: 38px; height: 38px; border: 2px solid #000; background: #fff; box-shadow: 3px 3px 0px rgba(0,0,0,0.2);">
         </div>
-        <a href="https://jeongsh214.github.io/herb_calculator/index.html" target="_blank" style="text-decoration:none;">
-            <span style="background:#fff; border:2px solid #000; padding:7px 12px; font-weight:900; color:#000;">약초조합계산기 ◀</span>
+
+        <a href="https://jeongsh214.github.io/herb_calculator/index.html" target="_blank" style="display: flex; align-items: center; gap: 6px; text-decoration: none; color: #000;">
+            <img src="images/herb.png" style="width: 38px; height: 38px; border: 2px solid #000; background: #fff; box-shadow: 3px 3px 0px rgba(0,0,0,0.2);">
+            <span style="font-size: 13px; font-weight: 900; background: #fff; border: 2px solid #000; padding: 7px 12px; box-shadow: 3px 3px 0px rgba(0,0,0,0.2); height: 38px; display: flex; align-items: center; box-sizing: border-box;">약초조합계산기 ◀</span>
         </a>
-        <input type="text" id="search-input" placeholder="검색...">
-        <div id="toggle-sidebar">▼ 한월메뉴 열기</div>
+
+        <div style="position: relative;">
+            <input type="text" id="search-input" placeholder="정보 및 위치 검색..." style="width: 180px; height: 38px; padding: 0 10px; border: 2px solid #000; font-family: 'Pretendard', sans-serif; font-weight: 700; outline: none; background: #fff; box-sizing: border-box;">
+            <div id="search-results"></div>
+        </div>
+
+        <div style="position: relative;">
+            <div id="toggle-sidebar">▼ 한월메뉴 열기</div>
+            <div id="controls">
+                <div class="control-header"><h3 class="control-title">한월서버</h3></div>
+                <div class="control-group">
+                    <label class="control-item"><input type="checkbox" id="check-spawn" checked> <img src="images/compass.png"> 스폰 지점</label>
+                    <label class="control-item"><input type="checkbox" id="check-animals" checked> <img src="images/forky.png"> 십이지신</label>
+                </div>
+                <div class="divider"></div>
+                <div class="control-group">
+                    <label class="control-item"><input type="checkbox" id="check-stones"> <img src="images/stone.png"> 산/동상</label>
+                    <label class="control-item"><input type="checkbox" id="check-npc"> <img src="images/forky.png"> NPC</label>
+                </div>
+                <div class="divider"></div>
+                <div class="control-group">
+                    <label class="control-item"><input type="checkbox" id="check-red"> <img src="images/red.png"> 적환단</label>
+                    <label class="control-item"><input type="checkbox" id="check-pot"> <img src="images/pot.png"> 탐색(항아리)</label>
+                    <label class="control-item"><input type="checkbox" id="check-box"> <img src="images/box.png"> 의문의 상자</label>
+                </div>
+                <div class="divider"></div>
+                <div class="control-group">
+                    <div style="font-weight: 900; margin-bottom: 8px; font-size: 13px;">광산 구역</div>
+                    <label class="control-item"><input type="checkbox" id="mine-녹"> <div class="color-dot" style="background:#2ecc71;"></div> 녹색광산</label>
+                    <label class="control-item"><input type="checkbox" id="mine-청"> <div class="color-dot" style="background:#3498db;"></div> 청색광산</label>
+                    <label class="control-item"><input type="checkbox" id="mine-황"> <div class="color-dot" style="background:#f1c40f;"></div> 황색광산</label>
+                    <label class="control-item"><input type="checkbox" id="mine-적"> <div class="color-dot" style="background:#e74c3c;"></div> 적색광산</label>
+                </div>
+                <div class="control-group">
+                    <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                        <div class="accordion-header" id="hunt-accordion-btn" style="flex: 1;">사냥터 목록 <span>▼</span></div>
+                        <button id="reset-hunt" style="border: 2px solid #000; background: #fff; font-weight: 800; cursor: pointer; padding: 2px 6px;">초기화</button>
+                    </div>
+                    <div class="accordion-content" id="hunt-accordion-content"></div>
+                </div>
+                <div class="control-group">
+                    <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                        <div class="accordion-header" id="herb-accordion-btn" style="flex: 1;">약초 목록 <span>▼</span></div>
+                        <button id="reset-herb" style="border: 2px solid #000; background: #fff; font-weight: 800; cursor: pointer; padding: 2px 6px;">초기화</button>
+                    </div>
+                    <div class="accordion-content" id="herb-accordion-content"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -221,8 +254,8 @@
             if (document.getElementById('stop-showing').checked) localStorage.setItem('hideNotice_0415', 'true');
             if (modal) modal.style.display = 'none';
         };
-
-        // 포키 이벤트 팝업 닫기 함수
+        
+        // 이벤트 팝업 닫기 함수
         window.closePokiEvent = function() {
             const eventModal = document.getElementById('poki-event-modal');
             if (eventModal) eventModal.style.display = 'none';
@@ -232,13 +265,37 @@
             if (localStorage.getItem('hideNotice_0415') === 'true') if (modal) modal.style.display = 'none';
         });
 
-        // 사이드바 및 아코디언 로직 (생략 방지를 위해 유지)
+        // 사이드바 로직
         const sidebar = document.getElementById('controls');
         const toggleBtn = document.getElementById('toggle-sidebar');
-        if (toggleBtn) toggleBtn.addEventListener('click', () => {
+        function toggleSidebar() {
+            if (!sidebar) return;
             sidebar.classList.toggle('active');
             toggleBtn.innerText = sidebar.classList.contains('active') ? '▲ 한월메뉴 닫기' : '▼ 한월메뉴 열기';
-        });
+        }
+        if (toggleBtn) toggleBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(); });
+
+        // 지도 클릭 시 닫기
+        if (typeof map !== 'undefined') {
+            map.on('click', () => {
+                if (sidebar && sidebar.classList.contains('active')) { sidebar.classList.remove('active'); toggleBtn.innerText = '▼ 한월메뉴 열기'; }
+                document.getElementById('search-results').style.display = 'none';
+            });
+        }
+
+        // 아코디언 로직
+        function bindAccordion(btnId, contentId) {
+            const btn = document.getElementById(btnId);
+            const content = document.getElementById(contentId);
+            if (btn && content) {
+                btn.addEventListener('click', function() {
+                    content.classList.toggle('active');
+                    this.querySelector('span').innerText = content.classList.contains('active') ? '▲' : '▼';
+                });
+            }
+        }
+        bindAccordion('hunt-accordion-btn', 'hunt-accordion-content');
+        bindAccordion('herb-accordion-btn', 'herb-accordion-content');
     </script>
 </body>
 </html>
