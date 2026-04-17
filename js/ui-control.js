@@ -268,7 +268,7 @@ potItems.forEach((pot) => {
     const marker = L.marker(pos, { icon: potIcon }).addTo(layers.pot);
 
     // [이벤트 로직] 획득 아이템이 '깨진 옥장식'일 때만 포키 태그 생성
-    const pokiTag = (pot.item && pot.item.includes("깨진 옥장식")) 
+    const pokiTag = (pot.item && pot.item.includes("깨진옥장식")) 
         ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
              <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
              <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
@@ -516,6 +516,10 @@ sortedHerbData.forEach((herb) => {
         const yVal = loc.y !== undefined ? loc.y : 0;
 
         // [이벤트 로직] 약초 이름이 '옥취엽'일 때만 포키 태그 생성
+
+        const targetX = -3702; 
+        const targetZ = -2388;
+        
         const pokiTag = (herb.name === "옥취엽") 
             ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
                  <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
