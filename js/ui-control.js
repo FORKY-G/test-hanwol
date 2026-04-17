@@ -103,10 +103,20 @@ window.copyCoords = (x, y, z) => {
 animals.forEach((ani) => {
     const pos = mcToPx(ani.mcX, ani.mcZ);
     const marker = L.marker(pos, { icon: transparentIcon }).addTo(layers.animals);
+
+    // [이벤트 로직] 십이지신 이름이 '개'일 때만 포키 태그 생성
+    const pokiTag = (ani.name === "개") 
+        ? `<div style="text-align:center; margin-bottom:10px;">
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+             <div style="font-size:10px; color:#d4af37; font-weight:900;">포키 발견!</div>
+           </div>` 
+        : '';
+
     const popupContent = `
         <div style="text-align:center; min-width:200px; color:#000; padding: 5px 0;">
             <div style="font-size:20px; font-weight:800; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:12px;">${ani.order}. ${ani.name}</div>
-            <div style="background:#333; border-radius:4px; padding:10px 0; margin-bottom:12px; cursor:pointer;" onclick="copyCoords(${ani.mcX}, ${ani.mcY}, ${ani.mcZ})">
+            
+            ${pokiTag} <div style="background:#333; border-radius:4px; padding:10px 0; margin-bottom:12px; cursor:pointer;" onclick="copyCoords(${ani.mcX}, ${ani.mcY}, ${ani.mcZ})">
                 <div style="color:#FFD700; font-size:15px; font-weight:700; letter-spacing:0.5px;">${ani.mcX}, ${ani.mcY}, ${ani.mcZ}</div>
                 <div style="color:#aaa; font-size:11px; margin-top:4px;">(클릭하여 좌표 복사)</div>
             </div>
@@ -137,7 +147,9 @@ mines.forEach((mine) => {
     const specificOres = mineResources[mine.c];
     const commonOres = mineResources["공통"];
     const pathList = minePaths[mine.c].join(' > ');
-    const popupContent = `
+
+    // 팝업 내용 기본 조립
+    let popupContent = `
         <div style="text-align:center; min-width:230px; color:#000; padding: 0; line-height: 1.2;">
             <div style="font-size:20px; font-weight:800; border-bottom:2px solid #000; padding: 4px 0; margin-bottom: 8px;">${mine.n}번 광산 <span style="font-size:13px; font-weight:800; color:#d00;">(${specificOres})</span></div>
             <div style="background:#333; border-radius:4px; padding: 5px 0; margin-bottom: 8px; cursor:pointer;" onclick="copyCoords(${mine.x}, ${mine.y}, ${mine.z})">
@@ -148,18 +160,21 @@ mines.forEach((mine) => {
                 <div style="margin-bottom: 4px; font-weight:600; color:#666;">[공통] ${commonOres}</div>
                 <div style="font-weight:700; word-break:break-all; line-height: 1.3;"><span style="color:${mineColors[mine.c]};">동선:</span> ${pathList}</div>
             </div>
-        </div>
     `;
 
-    let finalPopupContent = popupContent;
+    // [핵심] 61번일 때만 포키 이미지 영역을 추가
     if (mine.n === 61) {
-        finalPopupContent = popupContent.replace('</div>\n            </div>\n        </div>', `
+        popupContent += `
             <div style="margin-top:8px; border-top:1px solid #aaa; padding-top:8px; text-align:center;">
                 <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
-            </div></div></div></div>`);
+                <p style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</p>
+            </div>
+        `;
     }
 
-    marker.bindPopup(finalPopupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, 10) });
+    popupContent += `</div>`; // 전체 div 닫기
+
+    marker.bindPopup(popupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, 10) });
     marker.on('mouseover', () => minePolylines[mine.c].setStyle({ opacity: 0.8 }));
     marker.on('mouseout', () => minePolylines[mine.c].setStyle({ opacity: 0 }));
 });
@@ -226,6 +241,15 @@ statues.filter(st => st.name !== "한월동상").forEach((st) => {
 mountains.forEach((mt) => {
     const pos = mcToPx(mt.x, mt.z);
     const marker = L.marker(pos, { icon: stoneIcon }).addTo(layers.stones);
+
+    // [이벤트 로직] 산 이름이 '치마산'일 때만 포키 태그 생성
+    const pokiTag = (mt.name === "치마산") 
+        ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+             <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
+           </div>` 
+        : '';
+
     const popupContent = `
         <div style="text-align:center; min-width:180px; color:#000; padding: 0;">
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #000; padding: 5px 0; margin-bottom: 10px;">${mt.name}</div>
@@ -233,7 +257,7 @@ mountains.forEach((mt) => {
                 <div style="color:#FFD700; font-size:15px; font-weight:700;">${mt.x}, ${mt.y}, ${mt.z}</div>
                 <div style="color:#aaa; font-size:10px;">(클릭하여 좌표 복사)</div>
             </div>
-        </div>
+            ${pokiTag} </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true });
 });
@@ -242,6 +266,15 @@ mountains.forEach((mt) => {
 potItems.forEach((pot) => {
     const pos = mcToPx(pot.x, pot.z);
     const marker = L.marker(pos, { icon: potIcon }).addTo(layers.pot);
+
+    // [이벤트 로직] 획득 아이템이 '깨진 옥장식'일 때만 포키 태그 생성
+    const pokiTag = (pot.item && pot.item.includes("깨진 옥장식")) 
+        ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+             <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
+           </div>` 
+        : '';
+
     const popupContent = `
         <div style="text-align:center; min-width:200px; color:#000; padding: 0; line-height: 1.3;">
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #000; padding: 5px 0; margin-bottom: 10px;">${pot.name}</div>
@@ -252,7 +285,7 @@ potItems.forEach((pot) => {
             <div style="font-size:13px; color:#333; letter-spacing:-0.4px; border-top:1px solid #aaa; padding-top: 8px;">
                 <div><span style="font-weight:800; color:#d00;">필요도구:</span> ${pot.tool}</div>
                 <div><span style="color:#666; font-weight:700;">획득아이템:</span> ${pot.item}</div>
-            </div>
+                ${pokiTag} </div>
         </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, -5) });
@@ -322,6 +355,14 @@ npcData.forEach((npc) => {
 
     const marker = L.marker(pos, { icon: currentIcon }).addTo(layers.npc);
 
+    // [이벤트 로직] NPC 이름이 '백향초 재배지'일 때만 포키 태그 생성
+    const pokiTag = (npc.name === "백향초재배지") 
+        ? `<div style="margin-top:5px; margin-bottom:10px; border-top:1px solid #aaa; padding-top:8px; text-align:center;">
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+             <div style="font-size:10px; color:#b8860b; margin-top:3px; font-weight:900;">포키 발견!</div>
+           </div>` 
+        : '';
+
     let craftHtml = '';
     if (npc.crafting && npc.crafting.length > 0) {
         craftHtml = `
@@ -383,7 +424,7 @@ npcData.forEach((npc) => {
                 <div style="color:#aaa; font-size:9px;">(위치 복사)</div>
             </div>
 
-            <div style="text-align:left; font-size:12px; color:#333;">
+            ${pokiTag} <div style="text-align:left; font-size:12px; color:#333;">
                 ${npc.quest ? `<div><span style="color:#d00; font-weight:800;">[퀘스트]</span> ${npc.quest}</div>` : ''}
                 ${npc.item ? `<div><span style="color:#007bff; font-weight:800;">[필요재료]</span> ${npc.item}</div>` : ''}
                 ${npc.materials ? `<div style="margin-top:8px; padding:8px; background:#f4faff; border:1px solid #cce5ff; border-radius:4px; color:#004085;"><span style="font-weight:800;">[제작재료]</span><br>${npc.materials}</div>` : ''}
@@ -416,6 +457,14 @@ huntingGrounds.forEach((area) => {
     label.innerHTML = `<input type="checkbox" id="hunt-${area.name}"><span style="flex:1;">${area.name}</span><span style="font-size:10px; color:#888; font-weight:normal;">Lv.${area.lv}</span>`;
     huntingListContainer.appendChild(label);
 
+    // [이벤트 로직] 사냥터 이름이 '협사곡'일 때만 포키 태그 생성
+    const pokiTag = (area.name === "협사곡") 
+        ? `<div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+             <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
+           </div>` 
+        : '';
+
     const popupContent = `
         <div style="text-align:center; min-width:220px; color:#000; padding: 5px; line-height: 1.4;">
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #333; padding-bottom:5px; margin-bottom:8px;">${area.name} (Lv.${area.lv})</div>
@@ -423,7 +472,7 @@ huntingGrounds.forEach((area) => {
                 <div style="margin-bottom:4px;"><span style="font-weight:800; color:#007bff;">[몬스터]</span> ${area.monsters}</div>
                 <div style="margin-bottom:4px;"><span style="font-weight:800; color:#444;">[좌표]</span> ${area.x}, ${area.y}, ${area.z}</div>
                 ${area.memo ? `<div style="margin-top:4px; color:#d00; font-weight:700;">${area.memo}</div>` : ''}
-            </div>
+                ${pokiTag} </div>
         </div>
     `;
     hMarker.bindPopup(popupContent, { autoPan: false, keepInView: true });
@@ -465,6 +514,15 @@ sortedHerbData.forEach((herb) => {
         const pos = mcToPx(loc.x, loc.z);
         const hMarker = L.marker(pos, { icon: transparentIcon });
         const yVal = loc.y !== undefined ? loc.y : 0;
+
+        // [이벤트 로직] 약초 이름이 '옥취엽'일 때만 포키 태그 생성
+        const pokiTag = (herb.name === "옥취엽") 
+            ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
+                 <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+                 <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
+               </div>` 
+            : '';
+
         const popupContent = `
             <div style="text-align:center; min-width:180px; color:#000;">
                 <div style="font-size:16px; font-weight:800; border-bottom:2px solid #000; padding-bottom:5px; margin-bottom:8px;">${herb.name}${isRare ? ' (희귀)' : ''}</div>
@@ -472,7 +530,7 @@ sortedHerbData.forEach((herb) => {
                     ${loc.x}, ${yVal}, ${loc.z}
                     <div style="color:#aaa; font-size:10px; font-weight:normal; margin-top:2px;">(클릭하여 좌표 복사)</div>
                 </div>
-            </div>
+                ${pokiTag} </div>
         `;
         hMarker.bindPopup(popupContent, { closeButton: false, offset: L.point(0, -10) });
         markerGroup.addLayer(hMarker);
@@ -695,7 +753,7 @@ window.toggleBlacksmithWindow = function() {
     }
 };
 
-// [20] 3단계: 부위별 상세 정보 렌더링
+// [20] 3단계: 부위별 상세 정보 렌더링 (적령 허리띠 이벤트 추가)
 function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
     const partArea = parentGrid.nextElementSibling;
     if (!partArea) return;
@@ -754,15 +812,14 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
                     ` : ''}
                 `;
 
-                const eventTargets = ["협사곡", "옥향초", "치마산", "개", "백향초 재배지", "적령 허리띠"];
-                if (eventTargets.includes(itemName)) {
-                    const pokiHTML = `
-                        <div style="margin-top:15px; border-top:1px dashed #5e4b3c; padding-top:10px; text-align:center;">
-                            <img src="images/forky.png" style="width:30px; border:2px solid #d4af37; background:#000; padding:2px;">
-                            <p style="font-size:10px; color:#d4af37; margin-top:5px; font-weight:bold;">포키 발견!</p>
+                // [이벤트 로직] 아이템 세트 이름이 '적령'이고, 선택한 부위가 '허리띠'일 때만 포키 추가
+                if (itemName === "적령" && part === "허리띠") {
+                    fixedSpecBox.insertAdjacentHTML('beforeend', `
+                        <div style="margin-top:12px; border-top:1px dashed #5e4b3c; padding-top:10px; text-align:center;">
+                            <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+                            <div style="font-size:10px; color:#d4af37; margin-top:5px; font-weight:900;">포키 발견!</div>
                         </div>
-                    `;
-                    fixedSpecBox.insertAdjacentHTML('beforeend', pokiHTML);
+                    `);
                 }
 
                 fixedSpecBox.style.display = 'block';
