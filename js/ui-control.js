@@ -511,34 +511,35 @@ sortedHerbData.forEach((herb) => {
 
     const markerGroup = L.layerGroup();
     herb.locations.forEach(loc => {
-        const pos = mcToPx(loc.x, loc.z);
-        const hMarker = L.marker(pos, { icon: transparentIcon });
-        const yVal = loc.y !== undefined ? loc.y : 0;
+    const pos = mcToPx(loc.x, loc.z);
+    const hMarker = L.marker(pos, { icon: transparentIcon });
+    const yVal = loc.y !== undefined ? loc.y : 0;
 
-        // [이벤트 로직] 약초 이름이 '옥취엽'일 때만 포키 태그 생성
+    // [이벤트 로직] 이름이 '옥취엽'이고, 다겸님이 말한 특정 좌표일 때만 포키 생성
+    const targetX = -3702; 
+    const targetZ = -2388;
+    
+    // 좌표까지 정확히 일치할 때만 pokiTag에 내용을 담습니다.
+    const pokiTag = (herb.name === "옥취엽" && loc.x === targetX && loc.z === targetZ) 
+        ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
+             <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
+           </div>` 
+        : '';
 
-        const targetX = -3702; 
-        const targetZ = -2388;
-        
-        const pokiTag = (herb.name === "옥취엽") 
-            ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
-                 <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
-                 <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
-               </div>` 
-            : '';
-
-        const popupContent = `
-            <div style="text-align:center; min-width:180px; color:#000;">
-                <div style="font-size:16px; font-weight:800; border-bottom:2px solid #000; padding-bottom:5px; margin-bottom:8px;">${herb.name}${isRare ? ' (희귀)' : ''}</div>
-                <div style="background:#333; color:#FFD700; border-radius:4px; padding:6px; cursor:pointer; font-size:14px; font-weight:700;" onclick="copyCoords(${loc.x}, ${yVal}, ${loc.z})">
-                    ${loc.x}, ${yVal}, ${loc.z}
-                    <div style="color:#aaa; font-size:10px; font-weight:normal; margin-top:2px;">(클릭하여 좌표 복사)</div>
-                </div>
-                ${pokiTag} </div>
-        `;
-        hMarker.bindPopup(popupContent, { closeButton: false, offset: L.point(0, -10) });
-        markerGroup.addLayer(hMarker);
-    });
+    const popupContent = `
+        <div style="text-align:center; min-width:180px; color:#000;">
+            <div style="font-size:16px; font-weight:800; border-bottom:2px solid #000; padding-bottom:5px; margin-bottom:8px;">${herb.name}${isRare ? ' (희귀)' : ''}</div>
+            <div style="background:#333; color:#FFD700; border-radius:4px; padding:6px; cursor:pointer; font-size:14px; font-weight:700;" onclick="copyCoords(${loc.x}, ${yVal}, ${loc.z})">
+                ${loc.x}, ${yVal}, ${loc.z}
+                <div style="color:#aaa; font-size:10px; font-weight:normal; margin-top:2px;">(클릭하여 좌표 복사)</div>
+            </div>
+            ${pokiTag} 
+        </div>
+    `;
+    hMarker.bindPopup(popupContent, { closeButton: false, offset: L.point(0, -10) });
+    markerGroup.addLayer(hMarker);
+});
     layers.herbMarkers[herb.name] = markerGroup;
 
     const label = document.createElement('label');
@@ -1065,3 +1066,33 @@ window.showRecipe = function(npcName, index) {
         `;
     }
 };
+
+// 사냥터 초기화
+const resetHuntBtn = document.getElementById('reset-hunt');
+if (resetHuntBtn) {
+    resetHuntBtn.addEventListener('click', () => {
+        huntingGrounds.forEach(area => {
+            const cb = document.getElementById(`hunt-${area.name}`);
+            if (cb && cb.checked) {
+                cb.checked = false;
+                // 기존 change 이벤트를 강제로 발생시켜 레이어를 제거합니다.
+                cb.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+}
+
+// 약초 초기화
+const resetHerbBtn = document.getElementById('reset-herb');
+if (resetHerbBtn) {
+    resetHerbBtn.addEventListener('click', () => {
+        sortedHerbData.forEach(herb => {
+            const cb = document.getElementById(`herb-${herb.name}`);
+            if (cb && cb.checked) {
+                cb.checked = false;
+                // 기존 change 이벤트를 강제로 발생시켜 레이어를 제거합니다.
+                cb.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+}
