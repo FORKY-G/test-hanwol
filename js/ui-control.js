@@ -516,8 +516,8 @@ sortedHerbData.forEach((herb) => {
     const yVal = loc.y !== undefined ? loc.y : 0;
 
     // [이벤트 로직] 이름이 '옥취엽'이고, 다겸님이 말한 특정 좌표일 때만 포키 생성
-    const targetX = -3702; 
-    const targetZ = -2388;
+    const targetX = -1323; 
+    const targetZ = -588;
     
     // 좌표까지 정확히 일치할 때만 pokiTag에 내용을 담습니다.
     const pokiTag = (herb.name === "옥취엽" && loc.x === targetX && loc.z === targetZ) 
