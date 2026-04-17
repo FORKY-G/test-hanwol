@@ -307,6 +307,14 @@ document.getElementById('search-results').style.display = 'none';
 });
 }
 
+    // 포키 이벤트 팝업 닫기 함수
+window.closePokiEvent = function() {
+    const eventModal = document.getElementById('poki-event-modal');
+    if (eventModal) {
+        eventModal.style.display = 'none';
+    }
+};
+
 // 아코디언 로직
 function bindAccordion(btnId, contentId) {
 const btn = document.getElementById(btnId);
