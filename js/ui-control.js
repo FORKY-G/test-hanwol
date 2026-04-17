@@ -266,15 +266,6 @@ mountains.forEach((mt) => {
 potItems.forEach((pot) => {
     const pos = mcToPx(pot.x, pot.z);
     const marker = L.marker(pos, { icon: potIcon }).addTo(layers.pot);
-
-    // [이벤트 로직] 획득 아이템이 '깨진 옥장식'일 때만 포키 태그 생성
-    const pokiTag = (pot.item && pot.item.includes("깨진옥장식")) 
-        ? `<div style="margin-top:10px; border-top:1px solid #aaa; padding-top:10px; text-align:center;">
-             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
-             <div style="font-size:10px; color:#b8860b; margin-top:5px; font-weight:900;">포키 발견!</div>
-           </div>` 
-        : '';
-
     const popupContent = `
         <div style="text-align:center; min-width:200px; color:#000; padding: 0; line-height: 1.3;">
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #000; padding: 5px 0; margin-bottom: 10px;">${pot.name}</div>
