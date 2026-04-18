@@ -1,5 +1,36 @@
-// [R-1] 최상단에 이 내용도 추가해 주세요
-// 모든 대장장이 아이템 이름을 싹 모읍니다 (중복 제거)
+// ==========================================
+// [이벤트 설정] 2시간 이벤트용 고정 시드 및 변수
+// ==========================================
+const EVENT_SEED = 2026041814; // 이 숫자만 바꾸면 모든 포키 위치와 검증 번호가 바뀝니다.
+let foundPokiList = [];        // 유저가 찾은 포키 저장용
+
+// 시드가 있는 랜덤 함수 (누가 접속해도 똑같은 결과를 내기 위함)
+function seededRandom(seed) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+// [R-1] 모든 후보군 수집 및 고정 셔플
+const allPokiCandidates = [
+    ...herbData.flatMap(h => h.locations.map(loc => ({ x: loc.x, z: loc.z }))),
+    ...npcData.map(n => ({ x: n.x, z: n.z })),
+    ...potItems.map(p => ({ x: p.x, z: p.z })),
+    ...mysteryBoxes.map(b => ({ x: b.x, z: b.z })),
+    ...animals.map(a => ({ x: a.mcX, z: a.mcZ })),
+    ...mountains.map(m => ({ x: m.x, z: m.z }))
+];
+
+// 고정된 시드(EVENT_SEED)로 셔플
+let tempSeed = EVENT_SEED;
+for (let i = allPokiCandidates.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom(tempSeed++) * (i + 1));
+    [allPokiCandidates[i], allPokiCandidates[j]] = [allPokiCandidates[j], allPokiCandidates[i]];
+}
+
+// 지도 마커 당첨자 9개 선정 (고정)
+const luckyPokiCoords = allPokiCandidates.slice(0, 9).map(c => `${c.x},${c.z}`);
+
+// 대장장이 당첨자 1개 선정 (고정)
 const allEquipmentNames = [];
 for (const level in blacksmithData) {
     for (const cat in blacksmithData[level]) {
@@ -10,33 +41,70 @@ for (const level in blacksmithData) {
         }
     }
 }
-// 대장장이 아이템 중 딱 3개만 포키 당첨자로 선정 (새로고침 전까지 고정)
-const luckyEquipment = allEquipmentNames.sort(() => 0.5 - Math.random()).slice(0, 1);
+// 똑같은 방식으로 장비 1개 추출
+const equipmentSeed = EVENT_SEED + 999;
+const luckyEquipment = [allEquipmentNames[Math.floor(seededRandom(equipmentSeed) * allEquipmentNames.length)]];
 
-// [R-1] 랜덤 포키 설정 로직 (모든 데이터 기반 10개 랜덤 좌표 선택)
-const allPokiCandidates = [
-    ...herbData.flatMap(h => h.locations.map(loc => ({ x: loc.x, z: loc.z }))),
-    ...npcData.map(n => ({ x: n.x, z: n.z })),
-    ...potItems.map(p => ({ x: p.x, z: p.z })),
-    ...mysteryBoxes.map(b => ({ x: b.x, z: b.z })),
-    ...animals.map(a => ({ x: a.mcX, z: a.mcZ })),
-    ...mountains.map(m => ({ x: m.x, z: m.z }))
-];
-
-// Fisher-Yates 셔플로 무작위 섞기
-for (let i = allPokiCandidates.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allPokiCandidates[i], allPokiCandidates[j]] = [allPokiCandidates[j], allPokiCandidates[i]];
+// [검증 암호 생성 함수]
+function generateVerifyCode(foundList) {
+    const sorted = [...foundList].sort().join("");
+    let hash = 0;
+    const combined = EVENT_SEED + sorted;
+    for (let i = 0; i < combined.length; i++) {
+        hash = ((hash << 5) - hash) + combined.charCodeAt(i);
+        hash |= 0;
+    }
+    return `PK-${Math.abs(hash).toString(16).toUpperCase().slice(0, 8)}`;
 }
-// 상위 10개 좌표만 저장
-const luckyPokiCoords = allPokiCandidates.slice(0, 8).map(c => `${c.x},${c.z}`);
 
-// 포키 태그 출력 함수
+// [포키 클릭 핸들러]
+window.collectPoki = function(id) {
+    if (!foundPokiList.includes(id)) {
+        foundPokiList.push(id);
+        
+        // 클릭한 이미지 변경이나 알림 등 피드백 (선택사항)
+        const toast = document.getElementById('copy-toast');
+        if(toast) {
+            document.getElementById('toast-text').innerText = `포키 검거! (${foundPokiList.length}/10)`;
+            toast.style.display = 'flex';
+            setTimeout(() => toast.style.display = 'none', 1000);
+        }
+
+        if (foundPokiList.length === 10) {
+            const finalCode = generateVerifyCode(foundPokiList);
+            showVictoryModal(finalCode);
+        }
+    }
+};
+
+// [결과 창 UI]
+function showVictoryModal(code) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: #1a1512; border: 3px solid #c5a368; color: #eee7c5;
+        padding: 30px; z-index: 10001; text-align: center; border-radius: 8px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.9); font-family: sans-serif;
+    `;
+    modal.innerHTML = `
+        <h2 style="color:#d4af37; margin-top:0;">🎉 포키 10마리 검거 완료! 🎉</h2>
+        <p style="font-size:13px; color:#b0a59a;">아래 검증 코드를 캡처해서 다겸님께 보내주세요.</p>
+        <div style="background:#000; padding:15px; margin:20px 0; border:1px dashed #c5a368;">
+            <span style="font-size:26px; font-weight:bold; letter-spacing:3px; color:#fff;">${code}</span>
+        </div>
+        <p style="font-size:10px; color:#555;">SEED: ${EVENT_SEED}</p>
+        <button onclick="this.parentElement.remove()" style="background:#c5a368; color:#1a1512; border:none; padding:10px 25px; cursor:pointer; font-weight:900; border-radius:4px;">확인</button>
+    `;
+    document.body.appendChild(modal);
+}
+
+// [포키 태그 출력 함수 수정] - 클릭 이벤트 연결
 const getPokiTag = (x, z) => {
-    return luckyPokiCoords.includes(`${x},${z}`)
+    const id = `${x},${z}`;
+    return luckyPokiCoords.includes(id)
         ? `<div style="text-align:center; margin-top:10px; border-top:1px solid #aaa; padding-top:10px;">
-             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
-             <div style="font-size:10px; color:#d4af37; font-weight:900;">포키 발견!</div>
+             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px; cursor:pointer;" onclick="collectPoki('${id}')">
+             <div style="font-size:10px; color:#d4af37; font-weight:900;">포키 발견! (클릭)</div>
            </div>`
         : '';
 };
