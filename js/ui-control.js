@@ -54,16 +54,29 @@ for (const level in blacksmithData) {
 const equipmentSeed = EVENT_SEED + 999;
 const luckyEquipment = [allEquipmentNames[Math.floor(seededRandom(equipmentSeed) * allEquipmentNames.length)]];
 
-// [검증 암호 생성 함수]
+// [검증 암호 생성 함수 수정]
 function generateVerifyCode(foundList) {
-    const sorted = [...foundList].sort().join("");
+    // 1. 유저 식별을 위해 닉네임을 물어봅니다. (도용 방지 핵심)
+    const userName = prompt("검증 코드 발급을 위해 마인크래프트 닉네임을 입력해주세요.", "");
+    if (!userName) return "닉네임 미입력";
+
+    const sortedPoki = [...foundList].sort().join("");
+    const combinedStr = EVENT_SEED + sortedPoki + userName; // 시드 + 포키 + 닉네임 조합
+
+    // 2. 문자열을 숫자로 변환 (해시 함수)
     let hash = 0;
-    const combined = EVENT_SEED + sorted;
-    for (let i = 0; i < combined.length; i++) {
-        hash = ((hash << 5) - hash) + combined.charCodeAt(i);
+    for (let i = 0; i < combinedStr.length; i++) {
+        hash = ((hash << 5) - hash) + combinedStr.charCodeAt(i);
         hash |= 0;
     }
-    return `PK-${Math.abs(hash).toString(16).toUpperCase().slice(0, 8)}`;
+
+    // 3. 8000 ~ 8999 범위로 변환
+    // 해시값의 절댓값을 1000으로 나눈 나머지를 취하면 0~999가 나옵니다.
+    const resultNum = 8000 + (Math.abs(hash) % 1000);
+
+    // 4. 최종 출력 (예: PK-8412-닉네임)
+    // 뒤에 닉네임을 붙여주면 다겸이가 나중에 캡처본 볼 때 누가 발급받은 건지 바로 알 수 있어.
+    return `PK-${resultNum}-${userName}`;
 }
 
 // [포키 클릭 핸들러]
