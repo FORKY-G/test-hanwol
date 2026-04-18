@@ -678,9 +678,6 @@ window.renderSkillList = function() {
         const imageTag = skill.image 
             ? `<img src="${skill.image}" style="width:100%; border-radius:4px; margin-top:8px; border:1px solid #5e4b3c; display:block;">` 
             : '';
-        // 비급쪽 빙천검법 수동 포키만 예외적으로 남겨둠
-        const pokiTag = (skill.name === "빙천검법") ? `<div style="text-align:center; margin-top:10px;"><img src="images/forky.png" style="width:30px; border:2px solid #d4af37; background:#000; padding:2px;"></div>` : '';
-
         return `
             <div style="margin-bottom: 20px; border-bottom: 1px solid #3d3129; padding-bottom: 15px;">
                 <div style="font-weight: 900; color: #c5a368; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center;">
@@ -777,15 +774,7 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
                         </div>
                     ` : ''}
                 `;
-                // 적령 허리띠 수동 포키 유지
-                if (itemName === "적령" && part === "허리띠") {
-                    fixedSpecBox.insertAdjacentHTML('beforeend', `
-                        <div style="margin-top:12px; border-top:1px dashed #5e4b3c; padding-top:10px; text-align:center;">
-                            <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
-                            <div style="font-size:10px; color:#d4af37; margin-top:5px; font-weight:900;">포키 발견!</div>
-                        </div>
-                    `);
-                }
+                
                 fixedSpecBox.style.display = 'block';
                 if(!isAutoOpen) {
                     Array.from(partGrid.children).forEach(child => child.firstChild.style.borderColor = '#000');
