@@ -14,7 +14,7 @@ for (let i = allPokiCandidates.length - 1; i > 0; i--) {
     [allPokiCandidates[i], allPokiCandidates[j]] = [allPokiCandidates[j], allPokiCandidates[i]];
 }
 // 상위 10개 좌표만 저장
-const luckyPokiCoords = allPokiCandidates.slice(0, 10).map(c => `${c.x},${c.z}`);
+const luckyPokiCoords = allPokiCandidates.slice(0, 7).map(c => `${c.x},${c.z}`);
 
 // 포키 태그 출력 함수
 const getPokiTag = (x, z) => {
