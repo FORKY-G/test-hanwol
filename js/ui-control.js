@@ -1122,13 +1122,30 @@ map.on('popupopen', e => {
 });
 
 window.showRecipe = function(npcName, index) {
+    // NPC 데이터에서 해당 NPC 찾기
     const npc = npcData.find(n => n.name === npcName);
+    // 공백을 제거한 ID 생성 (예: "명인대장장이")
     const displayId = `recipe-display-${npcName.replace(/\s+/g, '')}`;
     const displayDiv = document.getElementById(displayId);
+
     if (npc && npc.crafting && npc.crafting[index] && displayDiv) {
         const item = npc.crafting[index];
+        
+        // 재료 정보를 화면에 표시
         displayDiv.style.display = 'block';
-        displayDiv.innerHTML = `<div style="color:#d00; font-weight:900; ...">★ ${item.name}</div>...`;
+        displayDiv.innerHTML = `
+            <div style="border:1px solid #d4af37; background:#fff; padding:10px; border-radius:4px;">
+                <div style="color:#d00; font-weight:900; font-size:14px; margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:3px;">
+                    ★ ${item.name}
+                </div>
+                <div style="color:#333; font-size:12px; line-height:1.5; font-weight:700; word-break:keep-all;">
+                    ${item.materials}
+                </div>
+            </div>
+        `;
+        
+        // 팝업 높이가 변할 수 있으므로 리플렛 팝업 위치 업데이트 (선택 사항)
+        map.closePopup(); // 팝업이 깨질 경우 대비해 다시 열거나 조절 로직이 필요할 수 있음
     }
 };
 
