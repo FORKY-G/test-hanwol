@@ -494,12 +494,14 @@ npcData.forEach((npc) => {
 
     let craftHtml = '';
     if (npc.crafting && npc.crafting.length > 0) {
+        // ID에서 특수문자를 완전히 제거해서 안전하게 만듬
+        const safeId = npc.name.replace(/[^a-zA-Z0-9가-힣]/g, ''); 
         craftHtml = `
             <div style="margin-top:10px; border-top:2px solid #000; padding-top:10px;">
                 <div style="font-weight:900; font-size:13px; color:#000; margin-bottom:8px; text-align:left;">[제작 아이템 목록]</div>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background:#333; padding:4px; border:1px solid #000;">
                     ${npc.crafting.map((item, index) => `
-                        <div onclick="showRecipe('${npc.name}', ${index})" 
+                        <div onclick="showRecipe(event, '${npc.name}', ${index})" 
                              style="aspect-ratio: 1/1; background:#1a1a1a; border:1px solid #555; cursor:pointer; display:flex; align-items:center; justify-content:center;"
                              onmouseover="this.style.border='1px solid #ffd700'" 
                              onmouseout="this.style.border='1px solid #555'">
@@ -507,7 +509,7 @@ npcData.forEach((npc) => {
                         </div>
                     `).join('')}
                 </div>
-                <div id="recipe-display-${npc.name.replace(/\s+/g, '')}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
+                <div id="recipe-display-${safeId}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
                 </div>
             </div>
         `;
