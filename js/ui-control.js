@@ -1,3 +1,6 @@
+// ui-control.js 맨 위나 적절한 위치에 추가
+let eventStartTime = Date.now(); // 유저가 웹맵에 접속한 시간 기록
+
 // ==========================================
 // [이벤트 설정] 2시간 이벤트용 고정 시드 및 변수
 // ==========================================
@@ -54,29 +57,62 @@ for (const level in blacksmithData) {
 const equipmentSeed = EVENT_SEED + 999;
 const luckyEquipment = [allEquipmentNames[Math.floor(seededRandom(equipmentSeed) * allEquipmentNames.length)]];
 
-// [검증 암호 생성 함수 수정]
+// [검증 암호 생성 함수 수정] - 소요 시간 포함 버전
 function generateVerifyCode(foundList) {
-    // 1. 유저 식별을 위해 닉네임을 물어봅니다. (도용 방지 핵심)
+    // 1. 유저 식별을 위해 닉네임 입력
     const userName = prompt("검증 코드 발급을 위해 마인크래프트 닉네임을 입력해주세요.", "");
     if (!userName) return "닉네임 미입력";
 
-    const sortedPoki = [...foundList].sort().join("");
-    const combinedStr = EVENT_SEED + sortedPoki + userName; // 시드 + 포키 + 닉네임 조합
+    // 2. 소요 시간 계산 (초 단위)
+    const currentTime = Date.now();
+    const durationSeconds = Math.floor((currentTime - eventStartTime) / 1000);
 
-    // 2. 문자열을 숫자로 변환 (해시 함수)
+    // 3. 해시 생성을 위한 문자열 조합
+    // 시드 + 포키목록 + 닉네임 + 소요시간을 다 섞음
+    // 이제 1초만 늦게 눌러도 resultNum이 완전히 바뀜
+    const sortedPoki = [...foundList].sort().join("");
+    const combinedStr = EVENT_SEED + sortedPoki + userName + durationSeconds;
+
+    // 4. 문자열을 숫자로 변환 (해시 함수)
     let hash = 0;
     for (let i = 0; i < combinedStr.length; i++) {
         hash = ((hash << 5) - hash) + combinedStr.charCodeAt(i);
         hash |= 0;
     }
 
-    // 3. 8000 ~ 8999 범위로 변환
-    // 해시값의 절댓값을 1000으로 나눈 나머지를 취하면 0~999가 나옵니다.
-    const resultNum = 8000 + (Math.abs(hash) % 1000);
+    // 5. 8000 ~ 8900 범위로 변환 (0~900 나머지를 활용)
+    const resultNum = 8000 + (Math.abs(hash) % 901);
 
-    // 4. 최종 출력 (예: PK-8412-닉네임)
-    // 뒤에 닉네임을 붙여주면 다겸이가 나중에 캡처본 볼 때 누가 발급받은 건지 바로 알 수 있어.
-    return `PK-${resultNum}-${userName}`;
+    // 6. 최종 출력 (예: PK-8412-닉네임(125s))
+    // 뒤에 (초)가 붙어서 다겸이가 대리 여부를 판단할 수 있음
+    return `PK-${resultNum}-${userName}(${durationSeconds}s)`;
+}
+
+// [결과 창 UI] - 소요 시간 경고 문구 살짝 추가
+function showVictoryModal(code) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: #1a1512; border: 3px solid #c5a368; color: #eee7c5;
+        padding: 30px; z-index: 10001; text-align: center; border-radius: 8px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.9); font-family: sans-serif;
+    `;
+    
+    // 소요 시간 정보를 추출해서 표시 (운영 참고용)
+    const timeMatch = code.match(/\((.*)\)/);
+    const displayTime = timeMatch ? timeMatch[1] : "알 수 없음";
+
+    modal.innerHTML = `
+        <h2 style="color:#d4af37; margin-top:0;">🎉 포키 10마리 검거 완료! 🎉</h2>
+        <p style="font-size:13px; color:#b0a59a;">아래 검증 코드를 캡처해서 포키에게 보내주세요.</p>
+        <div style="background:#000; padding:15px; margin:20px 0; border:1px dashed #c5a368;">
+            <span style="font-size:26px; font-weight:bold; letter-spacing:3px; color:#fff;">${code}</span>
+        </div>
+        <p style="font-size:11px; color:#c5a368;">검거 소요 시간: ${displayTime}</p>
+        <p style="font-size:10px; color:#555;">SEED: ${EVENT_SEED} | 부정행위 적발 시 무효 처리됩니다.</p>
+        <button onclick="this.parentElement.remove()" style="background:#c5a368; color:#1a1512; border:none; padding:10px 25px; cursor:pointer; font-weight:900; border-radius:4px;">확인</button>
+    `;
+    document.body.appendChild(modal);
 }
 
 // [포키 클릭 핸들러]
