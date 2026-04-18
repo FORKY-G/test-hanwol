@@ -251,7 +251,7 @@ const herbData = [
     ]},
     { name: "철목영지", file: "hub18.png", locations: [{ x: -2304, y: 170, z: 4228 }, { x: -3326, y: 128, z: 3190 }] },
     { name: "적주과", file: "hub12.png", locations: [
-        { x: -344, y: 184, z: 22056 }, { x: -3944, y: 241, z: 1272 }, { x: -975, y: 244, z: 766 }
+        { x: -172, y: 187, z: 2064 }, { x: -3944, y: 241, z: 1272 }, { x: -975, y: 244, z: 766 }
     ]},
     { name: "자운초", file: "hub11.png", locations: [{ x: 2744, y: 224, z: 4672 }, { x: 4034, y: 210, z: 4340 }] },
     { name: "월계엽", file: "hub17.png", locations: [{ x: -96, y: 183, z: -6504 }] },
