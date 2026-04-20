@@ -1,172 +1,3 @@
-// ui-control.js 맨 위나 적절한 위치에 추가
-let eventStartTime = Date.now(); // 유저가 웹맵에 접속한 시간 기록
-
-// ==========================================
-// [이벤트 설정] 2시간 이벤트용 고정 시드 및 변수
-// ==========================================
-const EVENT_SEED = 2026041900; // 이 숫자만 바꾸면 모든 포키 위치와 검증 번호가 바뀝니다.
-let foundPokiList = [];        // 유저가 찾은 포키 저장용
-
-// 시드가 있는 랜덤 함수 (누가 접속해도 똑같은 결과를 내기 위함)
-function seededRandom(seed) {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-}
-
-// [R-1] 모든 후보군 수집 및 고정 셔플
-const allPokiCandidates = [
-    ...herbData.flatMap(h => h.locations.map(loc => ({ x: loc.x, z: loc.z }))),
-    ...npcData.map(n => ({ x: n.x, z: n.z })),
-    ...potItems.map(p => ({ x: p.x, z: p.z })),
-    ...mysteryBoxes.map(b => ({ x: b.x, z: b.z })),
-    ...animals.map(a => ({ x: a.mcX, z: a.mcZ })),
-    ...mountains.map(m => ({ x: m.x, z: m.z }))
-];
-
-// 고정된 시드(EVENT_SEED)로 셔플
-let tempSeed = EVENT_SEED;
-for (let i = allPokiCandidates.length - 1; i > 0; i--) {
-    const j = Math.floor(seededRandom(tempSeed++) * (i + 1));
-    [allPokiCandidates[i], allPokiCandidates[j]] = [allPokiCandidates[j], allPokiCandidates[i]];
-}
-
-// 지도 마커 당첨자 9개 선정 (고정)
-const luckyPokiCoords = allPokiCandidates.slice(0, 9).map(c => `${c.x},${c.z}`);
-
-// 대장장이 당첨자 1개 선정 (고정)
-const allEquipmentNames = [];
-for (const level in blacksmithData) {
-    for (const cat in blacksmithData[level]) {
-        const catData = blacksmithData[level][cat];
-        if (catData.items) {
-            Object.keys(catData.items).forEach(itemName => {
-                // 방어구라면 4부위를 각각 추가, 무기라면 이름만 추가
-                if (cat === "방어구") {
-                    ["투구", "갑옷", "허리띠", "신발"].forEach(part => {
-                        allEquipmentNames.push(`${itemName} ${part}`);
-                    });
-                } else {
-                    allEquipmentNames.push(itemName); // 무기나 장신구
-                }
-            });
-        }
-    }
-}
-
-// 2시간 고정 시드로 딱 1개 부위만 당첨!
-const equipmentSeed = EVENT_SEED + 999;
-const luckyEquipment = [allEquipmentNames[Math.floor(seededRandom(equipmentSeed) * allEquipmentNames.length)]];
-
-// [검증 암호 생성 함수 수정] - 소요 시간 포함 버전
-function generateVerifyCode(foundList) {
-    // 1. 유저 식별을 위해 닉네임 입력
-    const userName = prompt("검증 코드 발급을 위해 마인크래프트 닉네임을 입력해주세요.                  해당 팝업창이 사라지면 다시 찾으셔야 하니 마우스를 다른 곳에 클릭하지 않도록 주의하세요!", "");
-    if (!userName) return "닉네임 미입력";
-
-    // 2. 소요 시간 계산 (초 단위)
-    const currentTime = Date.now();
-    const durationSeconds = Math.floor((currentTime - eventStartTime) / 1000);
-
-    // 3. 해시 생성을 위한 문자열 조합
-    // 시드 + 포키목록 + 닉네임 + 소요시간을 다 섞음
-    // 이제 1초만 늦게 눌러도 resultNum이 완전히 바뀜
-    const sortedPoki = [...foundList].sort().join("");
-    const combinedStr = EVENT_SEED + sortedPoki + userName + durationSeconds;
-
-    // 4. 문자열을 숫자로 변환 (해시 함수)
-    let hash = 0;
-    for (let i = 0; i < combinedStr.length; i++) {
-        hash = ((hash << 5) - hash) + combinedStr.charCodeAt(i);
-        hash |= 0;
-    }
-
-    // 5. 8000 ~ 8900 범위로 변환 (0~900 나머지를 활용)
-    const resultNum = 8000 + (Math.abs(hash) % 901);
-
-    // 6. 최종 출력 (예: PK-8412-닉네임(125s))
-    // 뒤에 (초)가 붙어서 다겸이가 대리 여부를 판단할 수 있음
-    return `PK-${resultNum}-${userName}(${durationSeconds}s)`;
-}
-
-// [결과 창 UI] - 소요 시간 경고 문구 살짝 추가
-function showVictoryModal(code) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: #1a1512; border: 3px solid #c5a368; color: #eee7c5;
-        padding: 30px; z-index: 10001; text-align: center; border-radius: 8px;
-        box-shadow: 0 0 30px rgba(0,0,0,0.9); font-family: sans-serif;
-    `;
-    
-    // 소요 시간 정보를 추출해서 표시 (운영 참고용)
-    const timeMatch = code.match(/\((.*)\)/);
-    const displayTime = timeMatch ? timeMatch[1] : "알 수 없음";
-
-    modal.innerHTML = `
-        <h2 style="color:#d4af37; margin-top:0;">🎉 포키 10마리 검거 완료! 🎉</h2>
-        <p style="font-size:13px; color:#b0a59a;">아래 검증 코드를 캡처해서 포키에게 보내주세요.</p>
-        <div style="background:#000; padding:15px; margin:20px 0; border:1px dashed #c5a368;">
-            <span style="font-size:26px; font-weight:bold; letter-spacing:3px; color:#fff;">${code}</span>
-        </div>
-        <p style="font-size:11px; color:#c5a368;">검거 소요 시간: ${displayTime}</p>
-        <p style="font-size:10px; color:#555;">SEED: ${EVENT_SEED} | 부정행위 적발 시 무효 처리됩니다.</p>
-        <button onclick="this.parentElement.remove()" style="background:#c5a368; color:#1a1512; border:none; padding:10px 25px; cursor:pointer; font-weight:900; border-radius:4px;">확인</button>
-    `;
-    document.body.appendChild(modal);
-}
-
-// [포키 클릭 핸들러]
-window.collectPoki = function(id) {
-    if (!foundPokiList.includes(id)) {
-        foundPokiList.push(id);
-        
-        // 클릭한 이미지 변경이나 알림 등 피드백 (선택사항)
-        const toast = document.getElementById('copy-toast');
-        if(toast) {
-            document.getElementById('toast-text').innerText = `포키 검거! (${foundPokiList.length}/10)`;
-            toast.style.display = 'flex';
-            setTimeout(() => toast.style.display = 'none', 1000);
-        }
-
-        if (foundPokiList.length === 10) {
-            const finalCode = generateVerifyCode(foundPokiList);
-            showVictoryModal(finalCode);
-        }
-    }
-};
-
-// [결과 창 UI]
-function showVictoryModal(code) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background: #1a1512; border: 3px solid #c5a368; color: #eee7c5;
-        padding: 30px; z-index: 10001; text-align: center; border-radius: 8px;
-        box-shadow: 0 0 30px rgba(0,0,0,0.9); font-family: sans-serif;
-    `;
-    modal.innerHTML = `
-        <h2 style="color:#d4af37; margin-top:0;">🎉 포키 10마리 검거 완료! 🎉</h2>
-        <p style="font-size:13px; color:#b0a59a;">아래 검증 코드를 캡처해서 포키에게 보내주세요.</p>
-        <div style="background:#000; padding:15px; margin:20px 0; border:1px dashed #c5a368;">
-            <span style="font-size:26px; font-weight:bold; letter-spacing:3px; color:#fff;">${code}</span>
-        </div>
-        <p style="font-size:10px; color:#555;">SEED: ${EVENT_SEED}</p>
-        <button onclick="this.parentElement.remove()" style="background:#c5a368; color:#1a1512; border:none; padding:10px 25px; cursor:pointer; font-weight:900; border-radius:4px;">확인</button>
-    `;
-    document.body.appendChild(modal);
-}
-
-// [포키 태그 출력 함수 수정] - 클릭 이벤트 연결
-const getPokiTag = (x, z) => {
-    const id = `${x},${z}`;
-    return luckyPokiCoords.includes(id)
-        ? `<div style="text-align:center; margin-top:10px; border-top:1px solid #aaa; padding-top:10px;">
-             <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px; cursor:pointer;" onclick="collectPoki('${id}')">
-             <div style="font-size:10px; color:#d4af37; font-weight:900;">포키 발견! (클릭)</div>
-           </div>`
-        : '';
-};
-
 // [0] 레이어 그룹 정의 (체크박스 제어용)
 const layers = {
     spawn: L.layerGroup().addTo(map),      // 스폰: 초기 ON
@@ -268,12 +99,10 @@ window.copyCoords = (x, y, z) => {
     });
 };
 
-// [5] 십이지신 마커 생성 (랜덤 포키 적용)
+// [5] 십이지신 마커 생성
 animals.forEach((ani) => {
     const pos = mcToPx(ani.mcX, ani.mcZ);
     const marker = L.marker(pos, { icon: transparentIcon }).addTo(layers.animals);
-    const pokiTag = getPokiTag(ani.mcX, ani.mcZ);
-
     const popupContent = `
         <div style="text-align:center; min-width:200px; color:#000; padding: 5px 0;">
             <div style="font-size:20px; font-weight:800; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:12px;">${ani.order}. ${ani.name}</div>
@@ -285,7 +114,6 @@ animals.forEach((ani) => {
             <div style="font-size:12px; color:#333; line-height:1.6; letter-spacing:-0.3px; font-weight:600;">
                 쥐 > 소 > 호랑이 > 도사 > 토끼 > 용 / 뱀 > 도사 > 말 > 양 > 원숭이 > 도사 / 닭 > 개 > 돼지 > 도사
             </div>
-            ${pokiTag}
         </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, -5) });
@@ -298,7 +126,7 @@ L.marker(mcToPx(spawnData.mcX, spawnData.mcZ), { icon: compassIcon })
     .addTo(layers.spawn)
     .bindPopup(`<div style="color:#000; font-weight:bold; font-size:14px; text-align:center;">스폰 지점</div>`);
 
-// [7] 광산 마커 생성 (랜덤 포키 적용)
+// [7] 광산 마커 생성
 mines.forEach((mine) => {
     const pos = mcToPx(mine.x, mine.z);
     const specialNumbers = [14, 15, 24, 20, 27, 19];
@@ -309,8 +137,6 @@ mines.forEach((mine) => {
     const specificOres = mineResources[mine.c];
     const commonOres = mineResources["공통"];
     const pathList = minePaths[mine.c].join(' > ');
-    const pokiTag = getPokiTag(mine.x, mine.z);
-
     const popupContent = `
         <div style="text-align:center; min-width:230px; color:#000; padding: 0; line-height: 1.2;">
             <div style="font-size:20px; font-weight:800; border-bottom:2px solid #000; padding: 4px 0; margin-bottom: 8px;">${mine.n}번 광산 <span style="font-size:13px; font-weight:800; color:#d00;">(${specificOres})</span></div>
@@ -322,7 +148,6 @@ mines.forEach((mine) => {
                 <div style="margin-bottom: 4px; font-weight:600; color:#666;">[공통] ${commonOres}</div>
                 <div style="font-weight:700; word-break:break-all; line-height: 1.3;"><span style="color:${mineColors[mine.c]};">동선:</span> ${pathList}</div>
             </div>
-            ${pokiTag}
         </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, 10) });
@@ -388,12 +213,10 @@ statues.filter(st => st.name !== "한월동상").forEach((st) => {
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true });
 });
 
-// [10] 비석(산) 마커 생성 (랜덤 포키 적용)
+// [10] 비석(산) 마커 생성
 mountains.forEach((mt) => {
     const pos = mcToPx(mt.x, mt.z);
     const marker = L.marker(pos, { icon: stoneIcon }).addTo(layers.stones);
-    const pokiTag = getPokiTag(mt.x, mt.z);
-
     const popupContent = `
         <div style="text-align:center; min-width:180px; color:#000; padding: 0;">
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #000; padding: 5px 0; margin-bottom: 10px;">${mt.name}</div>
@@ -401,18 +224,15 @@ mountains.forEach((mt) => {
                 <div style="color:#FFD700; font-size:15px; font-weight:700;">${mt.x}, ${mt.y}, ${mt.z}</div>
                 <div style="color:#aaa; font-size:10px;">(클릭하여 좌표 복사)</div>
             </div>
-            ${pokiTag}
         </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true });
 });
 
-// [11] 항아리 마커 생성 (랜덤 포키 적용)
+// [11] 항아리 마커 생성
 potItems.forEach((pot) => {
     const pos = mcToPx(pot.x, pot.z);
     const marker = L.marker(pos, { icon: potIcon }).addTo(layers.pot);
-    const pokiTag = getPokiTag(pot.x, pot.z);
-
     const popupContent = `
         <div style="text-align:center; min-width:200px; color:#000; padding: 0; line-height: 1.3;">
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #000; padding: 5px 0; margin-bottom: 10px;">${pot.name}</div>
@@ -424,27 +244,30 @@ potItems.forEach((pot) => {
                 <div><span style="font-weight:800; color:#d00;">필요도구:</span> ${pot.tool}</div>
                 <div><span style="color:#666; font-weight:700;">획득아이템:</span> ${pot.item}</div>
             </div>
-            ${pokiTag}
         </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, -5) });
 });
 
-// [12] 의문의 상자 마커 생성 (랜덤 포키 적용)
+// [12] 의문의 상자 마커 생성
 mysteryBoxes.forEach((box) => {
     const pos = mcToPx(box.x, box.z);
+    
+    // item 내용에 "고급주문서뽑기"가 포함되어 있는지 확인
     const isSpecialBox = box.item && box.item.includes("고급주문서뽑기");
-    const pokiTag = getPokiTag(box.x, box.z);
     
     let boxIcon;
+
     if (isSpecialBox) {
+        // [강조용] box.png 뒤에 special-mine(빛나는 사각형) 효과를 넣은 아이콘
         boxIcon = L.divIcon({
-            className: 'special-mine',
+            className: 'special-mine', // 광산과 똑같이 빛나는 하얀 사각형 효과
             iconSize: [36, 36],
             iconAnchor: [18, 18],
             html: `<img src="images/box.png" style="width:30px; height:30px; position:absolute; top:3px; left:3px; z-index:10;">`
         });
     } else {
+        // [기본] 원래 쓰던 box.png 아이콘
         boxIcon = L.icon({
             iconUrl: 'images/box.png',
             iconSize: [36, 36],
@@ -466,17 +289,15 @@ mysteryBoxes.forEach((box) => {
                 <div style="color:#aaa; font-size:9px;">(클릭하여 좌표 복사)</div>
             </div>
             ${(box.item || box.entrance) ? `<div style="font-size:12px; color:#333; letter-spacing:-0.4px; border-top:1px solid #aaa; padding-top: 8px;">${itemInfo}${entranceInfo}</div>` : ''}
-            ${pokiTag}
         </div>
     `;
     marker.bindPopup(popupContent, { autoPan: false, keepInView: true, closeButton: false, offset: L.point(0, -5) });
 });
 
-// [13] 퀘스트 NPC 마커 생성 (랜덤 포키 적용)
+// [13] 퀘스트 NPC 마커 생성
 npcData.forEach((npc) => {
     const pos = mcToPx(npc.x, npc.z);
     const isSpecial = (npc.name === "탐령구" || npc.name === "정적주");
-    const pokiTag = getPokiTag(npc.x, npc.z);
     let currentIcon;
 
     if (npc.file === "transparent") {
@@ -494,14 +315,12 @@ npcData.forEach((npc) => {
 
     let craftHtml = '';
     if (npc.crafting && npc.crafting.length > 0) {
-        // ID에서 특수문자를 완전히 제거해서 안전하게 만듬
-        const safeId = npc.name.replace(/[^a-zA-Z0-9가-힣]/g, ''); 
         craftHtml = `
             <div style="margin-top:10px; border-top:2px solid #000; padding-top:10px;">
                 <div style="font-weight:900; font-size:13px; color:#000; margin-bottom:8px; text-align:left;">[제작 아이템 목록]</div>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background:#333; padding:4px; border:1px solid #000;">
                     ${npc.crafting.map((item, index) => `
-                        <div onclick="showRecipe(event, '${npc.name}', ${index})" 
+                        <div onclick="showRecipe('${npc.name}', ${index})" 
                              style="aspect-ratio: 1/1; background:#1a1a1a; border:1px solid #555; cursor:pointer; display:flex; align-items:center; justify-content:center;"
                              onmouseover="this.style.border='1px solid #ffd700'" 
                              onmouseout="this.style.border='1px solid #555'">
@@ -509,7 +328,7 @@ npcData.forEach((npc) => {
                         </div>
                     `).join('')}
                 </div>
-                <div id="recipe-display-${safeId}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
+                <div id="recipe-display-${npc.name.replace(/\s+/g, '')}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
                 </div>
             </div>
         `;
@@ -566,14 +385,13 @@ npcData.forEach((npc) => {
                 ${recordsHtml}
                 ${videoHtml}
             </div>
-            ${pokiTag}
         </div>
     `;
 
     marker.bindPopup(popupContent, { autoPan: true, keepInView: true, closeButton: false, offset: L.point(0, -5) });
 });
 
-// [14] 사냥터 영역 및 마커 생성 (랜덤 포키 적용)
+// [14] 사냥터 영역 및 마커 생성
 const huntingImageBounds = [[0, 0], [7300, 7300]]; 
 const huntingListContainer = document.getElementById('hunt-accordion-content');
 
@@ -583,7 +401,6 @@ huntingGrounds.forEach((area) => {
 
     const targetPos = mcToPx(area.x, area.z);
     const hMarker = L.marker(targetPos, { icon: transparentIcon, zIndexOffset: -500 }).addTo(layers.huntingMarkers); 
-    const pokiTag = getPokiTag(area.x, area.z);
 
     const label = document.createElement('label');
     label.className = 'control-item';
@@ -598,7 +415,6 @@ huntingGrounds.forEach((area) => {
                 <div style="margin-bottom:4px;"><span style="font-weight:800; color:#444;">[좌표]</span> ${area.x}, ${area.y}, ${area.z}</div>
                 ${area.memo ? `<div style="margin-top:4px; color:#d00; font-weight:700;">${area.memo}</div>` : ''}
             </div>
-            ${pokiTag}
         </div>
     `;
     hMarker.bindPopup(popupContent, { autoPan: false, keepInView: true });
@@ -616,7 +432,7 @@ huntingGrounds.forEach((area) => {
     });
 });
 
-// [15] 약초 시스템 (랜덤 포키 적용)
+// [15] 약초 시스템
 const herbListContainer = document.getElementById('herb-accordion-content');
 layers.herbs = {};
 layers.herbMarkers = {};
@@ -640,8 +456,6 @@ sortedHerbData.forEach((herb) => {
         const pos = mcToPx(loc.x, loc.z);
         const hMarker = L.marker(pos, { icon: transparentIcon });
         const yVal = loc.y !== undefined ? loc.y : 0;
-        const pokiTag = getPokiTag(loc.x, loc.z);
-
         const popupContent = `
             <div style="text-align:center; min-width:180px; color:#000;">
                 <div style="font-size:16px; font-weight:800; border-bottom:2px solid #000; padding-bottom:5px; margin-bottom:8px;">${herb.name}${isRare ? ' (희귀)' : ''}</div>
@@ -649,7 +463,6 @@ sortedHerbData.forEach((herb) => {
                     ${loc.x}, ${yVal}, ${loc.z}
                     <div style="color:#aaa; font-size:10px; font-weight:normal; margin-top:2px;">(클릭하여 좌표 복사)</div>
                 </div>
-                ${pokiTag}
             </div>
         `;
         hMarker.bindPopup(popupContent, { closeButton: false, offset: L.point(0, -10) });
@@ -675,7 +488,7 @@ sortedHerbData.forEach((herb) => {
     });
 });
 
-// [16] 체크박스 바인딩 시스템 (동일)
+// [16] 체크박스 바인딩 시스템
 const bindCheckbox = (id, layer) => {
     const el = document.getElementById(id);
     if (el) {
@@ -698,7 +511,7 @@ bindCheckbox('mine-청', layers.mines["청"]);
 bindCheckbox('mine-황', layers.mines["황"]);
 bindCheckbox('mine-적', layers.mines["적"]);
 
-// [17] 검색 시스템 (동일)
+// [17] 검색 시스템
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 let currentFilteredData = [];
@@ -710,20 +523,25 @@ searchInput.addEventListener('input', function() {
 
     if (!query) { searchResults.style.display = 'none'; return; }
 
+    // 약초
     sortedHerbData.forEach(h => {
         if (h.name.toLowerCase().includes(query)) currentFilteredData.push({ name: h.name, category: '약초', x: h.locations[0].x, y: (h.locations[0].y || 0), z: h.locations[0].z, type: 'herb', herbName: h.name });
     });
+    // 십이지신
     animals.forEach(ani => {
         if (ani.name.toLowerCase().includes(query)) currentFilteredData.push({ name: ani.name, category: '십이지신', x: ani.mcX, y: ani.mcY, z: ani.mcZ, type: 'animal' });
     });
+    // 광산
     mines.forEach(mine => {
         const spec = mineResources[mine.c] || "";
         const common = mineResources["공통"] || "";
         if ((mine.n.toString() + spec + common).toLowerCase().includes(query)) currentFilteredData.push({ name: `${mine.n}번 광산 (${spec})`, category: '광산', x: mine.x, y: mine.y, z: mine.z, type: 'mine' });
     });
+    // 사냥터
     huntingGrounds.forEach(area => {
         if (area.name.toLowerCase().includes(query) || area.monsters.toLowerCase().includes(query)) currentFilteredData.push({ name: area.name, category: '사냥터', x: area.x, y: area.y, z: area.z, type: 'hunting', areaName: area.name });
     });
+    // 기타 (NPC, 적환단, 동상, 탐색, 상자 등)
     const extras = [
         { data: npcData, cat: 'NPC' }, { data: redItems, cat: '적환단' }, { data: statues, cat: '동상/산' }, { data: mountains, cat: '동상/산' }, { data: potItems, cat: '탐색' }, { data: mysteryBoxes, cat: '의문의 상자' }
     ];
@@ -760,12 +578,16 @@ searchInput.addEventListener('input', function() {
 
 function moveToLocation(target) {
     const targetPos = mcToPx(target.x, target.z);
+    
+    // 약초가 아닐 때만 부드럽게 이동
     if (target.type !== 'herb') {
         map.flyTo(targetPos, -0.5, { animate: true, duration: 0.5 });
     }
 
     setTimeout(() => {
         let foundMarker = null;
+
+        // 1. 이미 지도에 있는 마커 찾기 (NPC, 탐색, 상자 등)
         const allGroups = [layers.spawn, layers.animals, layers.stones, layers.npc, layers.red, layers.pot, layers.box, layers.huntingMarkers];
         allGroups.forEach(group => {
             if (group.eachLayer) {
@@ -777,10 +599,12 @@ function moveToLocation(target) {
             }
         });
 
+        // 2. 마커가 있으면 그 마커를 열고, 없으면 전용 좌표 복사 팝업을 띄움
         if (foundMarker) {
             if (!map.hasLayer(foundMarker)) foundMarker.addTo(map);
             foundMarker.openPopup();
         } else {
+            // 마커를 못 찾았거나 레이어가 꺼져있을 때 뜨는 좌표 복사 팝업
             L.popup()
                 .setLatLng(targetPos)
                 .setContent(`
@@ -801,13 +625,11 @@ function moveToLocation(target) {
 // [18] 비급 정보 제어 기능
 window.toggleSkillWindow = function() {
     const win = document.getElementById('skill-window');
-    // 만약 blacksmithWin을 안 쓰기로 하셨다면 아래 줄은 주석 처리하거나 지워도 됩니다.
-    const blacksmithWin = document.getElementById('blacksmith-window'); 
-    
+    const blacksmithWin = document.getElementById('blacksmith-window');
     if (!win) return;
 
     if (win.style.display === 'none' || win.style.display === '') {
-        if (blacksmithWin) blacksmithWin.style.display = 'none';
+        if (blacksmithWin) blacksmithWin.style.display = 'none'; // 대장장이창도 같이 닫아주면 좋겠죠?
         win.style.display = 'block';
         renderSkillList();
     } else {
@@ -824,7 +646,6 @@ window.renderSkillList = function() {
             ? `<img src="${skill.image}" style="width:100%; border-radius:4px; margin-top:8px; border:1px solid #5e4b3c; display:block;">` 
             : '';
 
-        // 에러 원인이었던 ${pokiTag}를 삭제하고 깔끔하게 정리했습니다.
         return `
             <div style="margin-bottom: 20px; border-bottom: 1px solid #3d3129; padding-bottom: 15px;">
                 <div style="font-weight: 900; color: #c5a368; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center;">
@@ -846,7 +667,8 @@ if (skillBtn) {
     skillBtn.addEventListener('click', toggleSkillWindow);
 }
 
-// [19] 대장장이 정보창 토글 (동일)
+
+// [19] 대장장이 정보창 토글
 window.toggleBlacksmithWindow = function() {
     const win = document.getElementById('blacksmith-window');
     const skillWin = document.getElementById('skill-window');
@@ -861,7 +683,7 @@ window.toggleBlacksmithWindow = function() {
     }
 };
 
-// [20] 3단계: 부위별 상세 정보 렌더링 (이미지 에러 완벽 방어 버전)
+// [20] 3단계: 부위별 상세 정보 렌더링 (방어구 상세 PNG 연동)
 function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
     const partArea = parentGrid.nextElementSibling;
     if (!partArea) return;
@@ -891,24 +713,13 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
         const partIcon = document.createElement('div');
         partIcon.className = 'game-item-box'; 
         
-        // --- [수정 포인트: 이미지 경로 최적화] ---
-        let imgName = "";
-        if (partSpecificData && partSpecificData.file) {
-            imgName = partSpecificData.file;
-        } else if (parts[0] === "스텟") {
-            // 장신구의 경우 "스텟.png"를 찾는 대신 "반지1.png" 처럼 아이템 이름을 쓰게 유도
-            imgName = `${itemName}.png`; 
-        } else {
-            imgName = `${itemName}${part}.png`;
-        }
+        // 데이터에 file이 있으면 해당 파일을, 없으면 기본 이름.png를 시도합니다.
+        let imgName = (partSpecificData && partSpecificData.file) ? partSpecificData.file : `${part}.png`;
 
         partIcon.innerHTML = `
-            <img src="images/${imgName}" 
-                 onerror="this.src='images/${part === '스텟' ? '장신구' : part}.png'; this.onerror=null; if(!this.src.includes('.png')) this.style.display='none';" 
-                 style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
+            <img src="images/${imgName}" onerror="this.style.display='none'" style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
             <div style="position:absolute; color:#444; font-size:9px; z-index:1;">${part}</div>
         `;
-        // ----------------------------------------
 
         const partName = document.createElement('div');
         partName.className = 'game-item-name';
@@ -919,9 +730,6 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
 
         const openSpec = () => {
             if (partSpecificData) {
-                // 당첨 확인용 이름 (무기/장신구는 이름만, 방어구는 세트+부위)
-                const fullPartName = (parts[0] === "무기" || parts[0] === "스텟") ? itemName : `${itemName} ${part}`;
-
                 fixedSpecBox.innerHTML = `
                     <div style="margin-bottom:8px;">
                         <div style="color:#d4af37; font-weight:900; font-size:13px;">[스텟]</div>
@@ -934,27 +742,20 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
                         </div>
                     ` : ''}
                 `;
-                
-                if (luckyEquipment.includes(fullPartName)) {
-                    fixedSpecBox.insertAdjacentHTML('beforeend', `
-                        <div style="text-align:center; margin-top:12px; border-top:1px dashed #5e4b3c; padding-top:10px;">
-                            <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px; cursor:pointer;" onclick="collectPoki('${fullPartName}')">
-                            <div style="font-size:10px; color:#d4af37; margin-top:5px; font-weight:900;">포키 발견! (클릭)</div>
-                        </div>
-                    `);
-                }
-
                 fixedSpecBox.style.display = 'block';
+                
                 if(!isAutoOpen) {
                     Array.from(partGrid.children).forEach(child => child.firstChild.style.borderColor = '#000');
                     partIcon.style.borderColor = '#b8860b';
                 }
             }
         };
+
         partContainer.onclick = (e) => { e.stopPropagation(); openSpec(); };
         partGrid.appendChild(partContainer);
         if (isAutoOpen) openSpec();
     });
+
     partArea.appendChild(partGrid);
     partArea.appendChild(fixedSpecBox);
 }
@@ -1164,7 +965,7 @@ function renderAccessoryItems(lvTitle, items, targetArea) {
     targetArea.appendChild(infoArea);
 }
 
-// (팝업 자동 위치 조정 로직)
+// [21] 팝업 관리 및 제작 아이템 표시
 map.on('popupopen', e => {
     const container = e.popup._container;
     const rect = container.getBoundingClientRect();
@@ -1172,53 +973,48 @@ map.on('popupopen', e => {
     if (rect.top < mapRect.top + 60) container.style.transform += " translateY(" + (rect.height + 40) + "px)";
 });
 
-window.showRecipe = function(event, npcName, index) {
-    // 1. 클릭 이벤트 전파 차단 (가장 중요)
-    if (event) {
-        event.stopPropagation();
-    }
-
+window.showRecipe = function(npcName, index) {
     const npc = npcData.find(n => n.name === npcName);
-    const safeId = npcName.replace(/[^a-zA-Z0-9가-힣]/g, '');
-    const displayDiv = document.getElementById(`recipe-display-${safeId}`);
-
+    const displayId = `recipe-display-${npcName.replace(/\s+/g, '')}`;
+    const displayDiv = document.getElementById(displayId);
+    
     if (npc && npc.crafting && npc.crafting[index] && displayDiv) {
         const item = npc.crafting[index];
         displayDiv.style.display = 'block';
         displayDiv.innerHTML = `
-            <div style="border:1px solid #d4af37; background:#fff; padding:10px; border-radius:4px; margin-top:10px;">
-                <div style="color:#d00; font-weight:900; font-size:14px; margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:3px;">
-                    ★ ${item.name}
-                </div>
-                <div style="color:#333; font-size:12px; line-height:1.5; font-weight:700; word-break:keep-all;">
-                    ${item.materials}
-                </div>
-            </div>
+            <div style="color:#d00; font-weight:900; margin-bottom:5px; border-bottom:1px solid #ccc; padding-bottom:3px;">★ ${item.name}</div>
+            <div style="color:#333; font-size:11px; word-break:keep-all;">${item.materials}</div>
         `;
-        
-        const openPopup = map._popup; 
-        if (openPopup) {
-            openPopup.update(); 
-        }
     }
 };
 
-// 초기화 버튼 로직들 (동일)
+// [초기화 버튼 기능 연결]
+// 사냥터 초기화
 const resetHuntBtn = document.getElementById('reset-hunt');
 if (resetHuntBtn) {
     resetHuntBtn.addEventListener('click', () => {
         huntingGrounds.forEach(area => {
             const cb = document.getElementById(`hunt-${area.name}`);
-            if (cb && cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+            if (cb && cb.checked) {
+                cb.checked = false;
+                // 기존 change 이벤트를 강제로 발생시켜 레이어를 제거합니다.
+                cb.dispatchEvent(new Event('change'));
+            }
         });
     });
 }
+
+// 약초 초기화
 const resetHerbBtn = document.getElementById('reset-herb');
 if (resetHerbBtn) {
     resetHerbBtn.addEventListener('click', () => {
         sortedHerbData.forEach(herb => {
             const cb = document.getElementById(`herb-${herb.name}`);
-            if (cb && cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); }
+            if (cb && cb.checked) {
+                cb.checked = false;
+                // 기존 change 이벤트를 강제로 발생시켜 레이어를 제거합니다.
+                cb.dispatchEvent(new Event('change'));
+            }
         });
     });
 }
